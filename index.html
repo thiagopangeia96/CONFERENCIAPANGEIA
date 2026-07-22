@@ -814,13 +814,28 @@ function abrirCamera(alvo){
   cameraAlvo = alvo;
   var modal = document.getElementById('camera-modal');
   modal.style.display = 'flex';
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+  // Força resolução alta e foco contínuo para melhor leitura de QR
+  var constraints = {
+    video: {
+      facingMode: 'environment',
+      width:  {ideal: 1280},
+      height: {ideal: 720},
+      focusMode: 'continuous'
+    }
+  };
+  navigator.mediaDevices.getUserMedia(constraints)
     .then(function(stream){
       cameraStream = stream;
       var video = document.getElementById('camera-video');
       video.srcObject = stream;
       video.play();
-      cameraLoop = requestAnimationFrame(lerQRCode);
+      // Tenta ativar foco contínuo via track capabilities
+      var track = stream.getVideoTracks()[0];
+      if(track && track.applyConstraints){
+        track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});
+      }
+      // Aguarda 800ms para câmera estabilizar antes de começar a ler
+      setTimeout(function(){ cameraLoop = setInterval(lerQRCode, 200); }, 800);
     })
     .catch(function(err){
       fecharCamera();
@@ -831,31 +846,29 @@ function abrirCamera(alvo){
 function lerQRCode(){
   var video = document.getElementById('camera-video');
   var canvas = document.getElementById('camera-canvas');
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    var code = jsQR(imageData.data, imageData.width, imageData.height, {inversionAttempts:'dontInvert'});
-    if(code){
-      var val = code.data.trim();
-      fecharCamera();
-      if(cameraAlvo === 'local'){
-        document.getElementById('inp-local-cel').value = val.toUpperCase();
-        confirmarLocalCelular();
-      } else {
-        document.getElementById('inp-ean-cel').value = val;
-        confirmarEanCelular();
-      }
-      return;
+  if(video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  // Tenta leitura normal e invertida
+  var code = jsQR(imageData.data, imageData.width, imageData.height, {inversionAttempts:'attemptBoth'});
+  if(code){
+    var val = code.data.trim();
+    fecharCamera();
+    if(cameraAlvo === 'local'){
+      document.getElementById('inp-local-cel').value = val.toUpperCase();
+      confirmarLocalCelular();
+    } else {
+      document.getElementById('inp-ean-cel').value = val;
+      confirmarEanCelular();
     }
   }
-  cameraLoop = requestAnimationFrame(lerQRCode);
 }
 
 function fecharCamera(){
-  if(cameraLoop){ cancelAnimationFrame(cameraLoop); cameraLoop = null; }
+  if(cameraLoop){ clearInterval(cameraLoop); cameraLoop = null; }
   if(cameraStream){ cameraStream.getTracks().forEach(function(t){ t.stop(); }); cameraStream = null; }
   document.getElementById('camera-modal').style.display = 'none';
 }
