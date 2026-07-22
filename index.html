@@ -116,6 +116,7 @@ body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--lav-l);col
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulsar{0%,100%{transform:scale(1)}50%{transform:scale(1.03);}}
 
 /* MODO COLETOR vs CELULAR */
 .modo-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.2);color:#fff;border:none;}
@@ -193,45 +194,40 @@ body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--lav-l);col
     <div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px;" id="monitor-titulo">Bipe o local e o item</div>
   </div>
 
-  <!-- STEPS visuais -->
-  <div class="card">
-    <div class="card-title">Sequência de bipagem</div>
-
-    <!-- Step 1: Local -->
-    <div class="step active" id="step-local">
-      <div class="step-num">1</div>
-      <div class="step-info">
-        <div class="step-label">Local</div>
-        <div class="step-value" id="step-local-val">Aguardando...</div>
+  <!-- LOCAL ATIVO -->
+  <div id="card-local-ativo" style="display:none;background:linear-gradient(135deg,#1e40af,#1d4ed8);border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.06em;">Local ativo</div>
+        <div style="font-size:24px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:1px;" id="local-ativo-label">—</div>
       </div>
-      <div class="step-icon">📍</div>
+      <button onclick="fecharLocalAtual()" style="background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:10px;padding:10px 16px;font-size:12px;font-weight:800;cursor:pointer;">
+        ✅ Fechar Local
+      </button>
     </div>
-
-    <!-- Step 2: Item -->
-    <div class="step skip" id="step-item">
-      <div class="step-num">2</div>
-      <div class="step-info">
-        <div class="step-label">Item (EAN)</div>
-        <div class="step-value" id="step-item-val">Aguardando local...</div>
-        <div class="step-sub" id="step-item-sub"></div>
-      </div>
-      <div class="step-icon">📦</div>
-    </div>
-
-    <!-- Step 3: Quantidade -->
-    <div class="step skip" id="step-qtd">
-      <div class="step-num">3</div>
-      <div class="step-info">
-        <div class="step-label">Quantidade</div>
-        <div class="step-value" id="step-qtd-val">Aguardando item...</div>
-      </div>
-      <div class="step-icon">🔢</div>
-    </div>
+    <!-- Itens acumulados no local -->
+    <div id="itens-local" style="margin-top:12px;"></div>
   </div>
 
-  <!-- Campo de bipe (modo coletor: campo único que recebe tudo) -->
+  <!-- ALERTA ITEM DIFERENTE -->
+  <div id="alerta-item-diferente" style="display:none;background:#dc2626;border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;animation:pulsar .5s ease-in-out 3;">
+    <div style="font-size:28px;">⚠️</div>
+    <div style="font-size:16px;font-weight:900;color:#fff;margin-top:4px;">ITEM DIFERENTE NO LOCAL!</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.9);margin-top:4px;" id="alerta-detalhe"></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:8px;font-weight:700;">Destine esta peça para o local correto</div>
+    <button onclick="ocultarAlerta()" style="margin-top:12px;background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:8px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer;">OK, entendido</button>
+  </div>
+
+  <!-- STATUS quando aguardando local -->
+  <div id="card-aguardando" class="card" style="text-align:center;padding:24px;">
+    <div style="font-size:48px;margin-bottom:8px;">📍</div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:4px;">Bipe o local</div>
+    <div style="font-size:12px;color:var(--txt-s);">Aponte o coletor para o QR Code da prateleira</div>
+  </div>
+
+  <!-- Campo de bipe coletor -->
   <div class="card" id="card-bipe-coletor">
-    <div class="card-title">📡 Campo de Bipagem — Coletor</div>
+    <div class="card-title">📡 Coletor</div>
     <input class="bipe-input" type="text" id="inp-bipe"
            placeholder="Aponte o coletor aqui..."
            autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -240,9 +236,9 @@ body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--lav-l);col
     <div class="bipe-hint" id="bipe-hint">Bipe o QR do LOCAL primeiro</div>
   </div>
 
-  <!-- Modo celular: campos separados com botão de câmera -->
+  <!-- Modo celular -->
   <div class="card" id="card-bipe-celular" style="display:none;">
-    <div class="card-title">📱 Bipagem Manual — Celular</div>
+    <div class="card-title">📱 Celular</div>
     <div id="celular-local-wrap">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--txt-s);text-transform:uppercase;margin-bottom:5px;">Local</label>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -267,26 +263,7 @@ body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--lav-l);col
     </div>
   </div>
 
-  <!-- Produto identificado -->
-  <div id="produto-identificado" style="display:none;">
-    <div id="produto-card-inner"></div>
-  </div>
-
-  <!-- Quantidade -->
-  <div class="card" id="card-quantidade" style="display:none;">
-    <div class="card-title">Quantidade</div>
-    <div class="qtd-wrap">
-      <label>Total de peças</label>
-      <input class="qtd-input" type="number" id="inp-qtd" placeholder="0" min="0" inputmode="numeric"
-             onkeydown="if(event.key==='Enter')registrar()">
-    </div>
-  </div>
-
-  <button class="btn btn-primary" id="btn-registrar" onclick="registrar()" style="display:none;">
-    ✅ Registrar
-  </button>
-
-  <!-- Histórico da sessão -->
+  <!-- Histórico -->
   <div style="margin-top:16px;">
     <div style="font-size:12px;font-weight:800;color:var(--txt-s);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;justify-content:space-between;">
       <span>Últimos lançamentos</span>
@@ -462,61 +439,67 @@ function renderInventarios(lista){
   });
 }
 
-// ── BIPAGEM — LÓGICA PRINCIPAL ─────────────────────────────
-// Estados: 'local' → 'item' → 'qtd'
+// ── BIPAGEM — LÓGICA ACUMULO POR LOCAL ────────────────────
 var estadoBipe = 'local';
+var acumuladorLocal = {};
+var primeiroEanLocal = '';
 
 function resetarBipagem(){
   estadoBipe = 'local';
   localAtivo = '';
   itemAtivo = null;
-
-  // Steps
-  setStep('local','active','Aguardando...');
-  setStep('item','skip','Aguardando local...');
-  setStep('qtd','skip','Aguardando item...');
-
-  // Oculta produto e quantidade
-  document.getElementById('produto-identificado').style.display = 'none';
-  document.getElementById('card-quantidade').style.display = 'none';
-  document.getElementById('btn-registrar').style.display = 'none';
-
-  // Limpa inputs
+  acumuladorLocal = {};
+  primeiroEanLocal = '';
+  document.getElementById('card-aguardando').style.display = '';
+  document.getElementById('card-local-ativo').style.display = 'none';
+  document.getElementById('alerta-item-diferente').style.display = 'none';
   document.getElementById('inp-bipe').value = '';
-  document.getElementById('inp-qtd').value = '';
   document.getElementById('inp-local-cel').value = '';
   document.getElementById('inp-ean-cel').value = '';
   document.getElementById('bipe-hint').textContent = 'Bipe o QR do LOCAL primeiro';
-
-  // Modo celular: habilita local, desabilita ean
   document.getElementById('celular-local-wrap').style.opacity = '1';
   document.getElementById('celular-local-wrap').style.pointerEvents = '';
   document.getElementById('celular-ean-wrap').style.opacity = '.4';
   document.getElementById('celular-ean-wrap').style.pointerEvents = 'none';
+  if(!modoColetor) setTimeout(function(){ document.getElementById('inp-local-cel').focus(); }, 100);
 }
 
-function setStep(id, estado, valor, sub){
-  var el = document.getElementById('step-'+id);
-  el.className = 'step '+estado;
-  document.getElementById('step-'+id+'-val').textContent = valor;
-  if(sub !== undefined){
-    document.getElementById('step-'+id+'-sub').textContent = sub||'';
-  }
+function setStep(){}
+
+function renderItensLocal(){
+  var el = document.getElementById('itens-local');
+  var keys = Object.keys(acumuladorLocal);
+  if(!keys.length){ el.innerHTML=''; return; }
+  el.innerHTML = keys.map(function(ean){
+    var it = acumuladorLocal[ean];
+    var nome = it.cadastrado ? it.produto+' · '+it.cor+' · '+it.tamanho : '⚠️ EAN '+ean;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px;margin-top:6px;">'+
+      '<div style="font-size:12px;color:#fff;font-weight:700;">'+nome+'</div>'+
+      '<div style="background:#fff;color:var(--roxo);padding:3px 12px;border-radius:20px;font-weight:900;font-size:14px;">'+it.qtd+'</div>'+
+      '</div>';
+  }).join('');
 }
 
-// Coletor: recebe tudo no mesmo campo, Enter = confirma
+var _ultimoBipe = 0;
+var DEBOUNCE_MS = 300;
+
 function onBipeKeydown(evt){
-  if(evt.key === 'Enter'){
+  if(evt.key==='Enter'){
     evt.preventDefault();
     var val = document.getElementById('inp-bipe').value.trim();
     if(!val) return;
+    var agora = Date.now();
+    if(agora - _ultimoBipe < DEBOUNCE_MS){ document.getElementById('inp-bipe').value=''; return; }
+    _ultimoBipe = agora;
     processarBipe(val);
     document.getElementById('inp-bipe').value = '';
   }
 }
 function onBipeInput(val){
-  // Alguns coletores enviam sem Enter — detecta por comprimento do EAN (13 chars)
-  if(estadoBipe === 'item' && val.length === 13 && /^\d+$/.test(val)){
+  if(estadoBipe==='item' && val.length===13 && /^\d+$/.test(val)){
+    var agora = Date.now();
+    if(agora - _ultimoBipe < DEBOUNCE_MS){ return; }
+    _ultimoBipe = agora;
     setTimeout(function(){
       processarBipe(val);
       document.getElementById('inp-bipe').value = '';
@@ -525,139 +508,136 @@ function onBipeInput(val){
 }
 
 function processarBipe(val){
-  if(estadoBipe === 'local'){
-    confirmarLocal(val);
-  } else if(estadoBipe === 'item'){
-    confirmarEan(val);
+  val = val.trim();
+  var ehLocal = /^[A-Z]{1,2}\d+\.\d+$/i.test(val);
+  if(ehLocal){
+    if(localAtivo){
+      // Fecha local anterior (com ou sem itens — vazio também registra)
+      enviarAcumulador(function(){ confirmarLocal(val); });
+    } else {
+      confirmarLocal(val);
+    }
+  } else {
+    if(estadoBipe==='local') toast('⚠️ Bipe o LOCAL primeiro');
+    else confirmarEan(val);
   }
 }
 
-// ── LOCAL ──────────────────────────────────────────────────
 function confirmarLocal(val){
-  // Valida formato: letra(s) + número + ponto + número (ex: A1.3, B7.12)
-  var fmt = /^[A-Z]{1,2}\d+\.\d+$/i.test(val.trim());
-  if(!fmt){
-    toast('⚠️ Local inválido: use formato A1.3');
-    return;
-  }
-  localAtivo = val.trim().toUpperCase();
-  setStep('local','done', localAtivo);
-  setStep('item','active','Bipe o EAN do item...');
+  localAtivo = val.toUpperCase();
   estadoBipe = 'item';
-  document.getElementById('bipe-hint').textContent = 'Agora bipe o QR do ITEM';
-
-  // Modo celular
+  acumuladorLocal = {};
+  primeiroEanLocal = '';
+  document.getElementById('card-aguardando').style.display = 'none';
+  document.getElementById('card-local-ativo').style.display = '';
+  document.getElementById('alerta-item-diferente').style.display = 'none';
+  document.getElementById('local-ativo-label').textContent = localAtivo;
+  document.getElementById('itens-local').innerHTML = '';
+  document.getElementById('bipe-hint').textContent = 'Local: '+localAtivo+' — Bipe os itens';
   document.getElementById('celular-ean-wrap').style.opacity = '1';
   document.getElementById('celular-ean-wrap').style.pointerEvents = '';
   document.getElementById('celular-local-wrap').style.opacity = '.6';
   document.getElementById('celular-local-wrap').style.pointerEvents = 'none';
   if(!modoColetor) setTimeout(function(){ document.getElementById('inp-ean-cel').focus(); }, 100);
+  toast('📍 Local: '+localAtivo);
 }
 
 function confirmarLocalCelular(){
   var val = document.getElementById('inp-local-cel').value.trim();
   if(!val){ toast('⚠️ Digite o local'); return; }
-  confirmarLocal(val);
+  if(localAtivo){
+    enviarAcumulador(function(){ confirmarLocal(val); });
+  } else {
+    confirmarLocal(val);
+  }
 }
 
-// ── EAN / ITEM ─────────────────────────────────────────────
 function confirmarEan(ean){
   ean = ean.trim();
-  if(!ean){ toast('⚠️ EAN vazio'); return; }
-
+  if(!ean) return;
   var info = EAN_LOOKUP[ean];
   var cadastrado = !!info;
-
-  if(cadastrado){
-    itemAtivo = {sku:info.sku, produto:info.produto, cor:info.cor, tamanho:info.tamanho, ean:ean, cadastrado:true};
-    setStep('item','done', info.produto, info.cor+' · '+info.tamanho);
-    mostrarProdutoCard(itemAtivo);
-    toast('✅ '+info.produto+' · '+info.cor+' · '+info.tamanho);
-  } else {
-    // EAN não cadastrado — permite mas avisa
-    itemAtivo = {sku:'', produto:'', cor:'', tamanho:'', ean:ean, cadastrado:false};
-    setStep('item','done', 'EAN: '+ean, '⚠️ Não cadastrado na base');
-    mostrarProdutoCard(itemAtivo);
-    toast('⚠️ EAN não cadastrado — será registrado com observação');
+  if(primeiroEanLocal && ean !== primeiroEanLocal){
+    var nomeNovo = cadastrado ? info.produto+' · '+info.cor+' · '+info.tamanho : 'EAN '+ean;
+    var it0 = acumuladorLocal[primeiroEanLocal];
+    var nomeRef = it0 ? it0.produto+' · '+it0.cor+' · '+it0.tamanho : 'EAN '+primeiroEanLocal;
+    document.getElementById('alerta-detalhe').textContent = 'Este local tem: '+nomeRef+' | Bipado: '+nomeNovo;
+    document.getElementById('alerta-item-diferente').style.display = '';
   }
-
-  estadoBipe = 'qtd';
-  setStep('qtd','active','Digite a quantidade...');
-  document.getElementById('card-quantidade').style.display = '';
-  document.getElementById('btn-registrar').style.display = '';
-  document.getElementById('bipe-hint').textContent = 'Informe a quantidade e registre';
-  setTimeout(function(){ document.getElementById('inp-qtd').focus(); }, 100);
+  if(!primeiroEanLocal) primeiroEanLocal = ean;
+  if(!acumuladorLocal[ean]){
+    acumuladorLocal[ean] = {
+      sku: cadastrado?info.sku:'', produto: cadastrado?info.produto:'',
+      cor: cadastrado?info.cor:'', tamanho: cadastrado?info.tamanho:'',
+      ean: ean, cadastrado: cadastrado, qtd: 0
+    };
+  }
+  acumuladorLocal[ean].qtd++;
+  renderItensLocal();
+  var nome = cadastrado ? info.produto+' '+info.cor+' '+info.tamanho : 'EAN '+ean;
+  toast('✅ '+nome+' — '+acumuladorLocal[ean].qtd+'x');
 }
 
 function confirmarEanCelular(){
-  confirmarEan(document.getElementById('inp-ean-cel').value);
+  var val = document.getElementById('inp-ean-cel').value.trim();
+  if(!val) return;
+  confirmarEan(val);
+  document.getElementById('inp-ean-cel').value = '';
 }
 
-function mostrarProdutoCard(item){
-  var el = document.getElementById('produto-identificado');
-  var extra = item.cadastrado ? '' : ' nao-cadastrado';
-  var html = '<div class="produto-card'+extra+'">';
-  if(item.cadastrado){
-    html += '<div class="pc-sku">'+item.sku+' · EAN '+item.ean+'</div>';
-    html += '<div class="pc-nome">'+item.produto+'</div>';
-    html += '<div class="pc-detalhes"><span class="pc-tag">'+item.cor+'</span><span class="pc-tag">'+item.tamanho+'</span></div>';
-  } else {
-    html += '<div class="pc-sku">EAN: '+item.ean+'</div>';
-    html += '<div class="pc-nome">⚠️ Item não cadastrado</div>';
-    html += '<div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:6px;">Será registrado com observação "NÃO CADASTRADO NA BASE"</div>';
+function ocultarAlerta(){
+  document.getElementById('alerta-item-diferente').style.display = 'none';
+}
+
+function fecharLocalAtual(){
+  if(!localAtivo){ toast('⚠️ Nenhum local ativo'); return; }
+  enviarAcumulador(function(){
+    resetarBipagem();
+    carregarHistorico();
+    if(modoColetor) document.getElementById('inp-bipe').focus();
+  });
+}
+
+function enviarAcumulador(callback){
+  var itens = Object.values(acumuladorLocal);
+  // Local vazio — registra uma linha com quantidade 0
+  if(!itens.length){
+    var payload = {
+      acao:'contagem',
+      invId:       invAtivo?invAtivo.id:'LIVRE',
+      invNome:     invAtivo?invAtivo.nome:'CONTAGEM LIVRE',
+      colaborador: usuarioLogado, tipo:'Monitor',
+      sku:'', ean:'', produto:'VAZIO', cor:'', tamanho:'',
+      localizacao: localAtivo, quantidade:0, obs:'LOCAL VAZIO'
+    };
+    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
+      .catch(function(){ adicionarFilaOffline(payload); })
+      .finally(function(){ if(callback) callback(); });
+    return;
   }
-  html += '</div>';
-  el.innerHTML = html;
-  el.style.display = '';
+  var total = itens.length;
+  var done = 0;
+  itens.forEach(function(item){
+    var obs = item.cadastrado ? '' : 'NÃO CADASTRADO NA BASE — EAN: '+item.ean;
+    var payload = {
+      acao:'contagem',
+      invId:       invAtivo?invAtivo.id:'LIVRE',
+      invNome:     invAtivo?invAtivo.nome:'CONTAGEM LIVRE',
+      colaborador: usuarioLogado, tipo:'Monitor',
+      sku:item.sku, ean:item.ean, produto:item.produto,
+      cor:item.cor, tamanho:item.tamanho,
+      localizacao: localAtivo, quantidade:item.qtd, obs:obs
+    };
+    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(!d.ok) adicionarFilaOffline(payload); })
+      .catch(function(){ adicionarFilaOffline(payload); })
+      .finally(function(){ done++; if(done===total){ toast('✅ '+total+' item(s) registrado(s) em '+localAtivo); if(callback) callback(); } });
+  });
 }
 
-// ── REGISTRAR ──────────────────────────────────────────────
-function registrar(){
-  var qtd = parseInt(document.getElementById('inp-qtd').value)||0;
-  if(!localAtivo){ toast('⚠️ Bipe o local primeiro'); return; }
-  if(!itemAtivo){ toast('⚠️ Bipe o item primeiro'); return; }
-  if(qtd <= 0){ toast('⚠️ Informe a quantidade'); return; }
-
-  var obs = itemAtivo.cadastrado ? '' : 'NÃO CADASTRADO NA BASE — EAN: '+itemAtivo.ean;
-
-  var payload = {
-    acao:         'contagem',
-    invId:        invAtivo ? invAtivo.id   : 'LIVRE',
-    invNome:      invAtivo ? invAtivo.nome : 'CONTAGEM LIVRE',
-    colaborador:  usuarioLogado,
-    tipo:         'Monitor',
-    sku:          itemAtivo.sku,
-    ean:          itemAtivo.ean,
-    produto:      itemAtivo.produto,
-    cor:          itemAtivo.cor,
-    tamanho:      itemAtivo.tamanho,
-    localizacao:  localAtivo,
-    quantidade:   qtd,
-    obs:          obs
-  };
-
-  var btn = document.getElementById('btn-registrar');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Registrando...';
-
-  fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d.ok){
-        toast('✅ Registrado!');
-        carregarHistorico();
-        // Reseta tudo — cada local tem 1 item
-        resetarBipagem();
-        if(modoColetor) document.getElementById('inp-bipe').focus();
-        else document.getElementById('inp-local-cel').focus();
-      } else { toast('❌ '+(d.erro||'Erro')); }
-    })
-    .catch(function(){
-      adicionarFilaOffline(payload);
-      toast('📵 Sem conexão — salvo localmente');
-      resetarBipagem();
-    })
-    .finally(function(){ btn.disabled=false; btn.innerHTML='✅ Registrar'; });
-}
+function registrar(){ fecharLocalAtual(); }
+function mostrarProdutoCard(){}
 
 // ── HISTÓRICO ──────────────────────────────────────────────
 function carregarHistorico(){
