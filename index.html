@@ -563,6 +563,15 @@ function confirmarEan(ean){
     var nomeRef = it0 ? it0.produto+' · '+it0.cor+' · '+it0.tamanho : 'EAN '+primeiroEanLocal;
     document.getElementById('alerta-detalhe').textContent = 'Este local tem: '+nomeRef+' | Bipado: '+nomeNovo;
     document.getElementById('alerta-item-diferente').style.display = '';
+    // Marca TODOS os itens já acumulados com ANOMALIA - VERIFICAR
+    Object.keys(acumuladorLocal).forEach(function(k){
+      acumuladorLocal[k].anomalia = true;
+    });
+  }
+  // Se já tem anomalia no local, marca o item atual também
+  if(Object.keys(acumuladorLocal).some(function(k){ return acumuladorLocal[k].anomalia; })){
+    if(!acumuladorLocal[ean]) acumuladorLocal[ean] = {sku:'',produto:'',cor:'',tamanho:'',ean:ean,cadastrado:cadastrado,qtd:0};
+    acumuladorLocal[ean].anomalia = true;
   }
   if(!primeiroEanLocal) primeiroEanLocal = ean;
   if(!acumuladorLocal[ean]){
@@ -617,8 +626,14 @@ function enviarAcumulador(callback){
   }
   var total = itens.length;
   var done = 0;
+  // Calcula total de peças e posição de cada item
+  var totalPecas = itens.reduce(function(s,i){ return s+i.qtd; },0);
   itens.forEach(function(item){
-    var obs = item.cadastrado ? '' : 'NÃO CADASTRADO NA BASE — EAN: '+item.ean;
+    var obs = item.anomalia ? 'ANOMALIA - VERIFICAR' : (item.cadastrado ? '' : 'NÃO CADASTRADO NA BASE — EAN: '+item.ean);
+    var posicao = '';
+    if(itens.length > 1 && totalPecas > 0){
+      posicao = (item.qtd / totalPecas) > 0.5 ? 'POSIÇÃO CORRETA' : 'ITEM ANOMALIA';
+    }
     var payload = {
       acao:'contagem',
       invId:       invAtivo?invAtivo.id:'LIVRE',
@@ -626,7 +641,7 @@ function enviarAcumulador(callback){
       colaborador: usuarioLogado, tipo:'Monitor',
       sku:item.sku, ean:item.ean, produto:item.produto,
       cor:item.cor, tamanho:item.tamanho,
-      localizacao: localAtivo, quantidade:item.qtd, obs:obs
+      localizacao: localAtivo, quantidade:item.qtd, obs:obs, posicao:posicao
     };
     fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
       .then(function(r){ return r.json(); })
