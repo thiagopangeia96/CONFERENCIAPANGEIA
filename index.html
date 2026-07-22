@@ -570,8 +570,8 @@ function confirmarEan(ean){
   }
   // Se já tem anomalia no local, marca o item atual também
   if(Object.keys(acumuladorLocal).some(function(k){ return acumuladorLocal[k].anomalia; })){
-    if(!acumuladorLocal[ean]) acumuladorLocal[ean] = {sku:'',produto:'',cor:'',tamanho:'',ean:ean,cadastrado:cadastrado,qtd:0};
-    acumuladorLocal[ean].anomalia = true;
+    // NÃO cria item vazio aqui — deixa o bloco abaixo criar com dados corretos
+    if(acumuladorLocal[ean]) acumuladorLocal[ean].anomalia = true;
   }
   if(!primeiroEanLocal) primeiroEanLocal = ean;
   if(!acumuladorLocal[ean]){
