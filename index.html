@@ -615,46 +615,62 @@ function fecharLocalAtual(){
 
 function enviarAcumulador(callback){
   var itens = Object.values(acumuladorLocal);
+  var localEnvio = localAtivo;
+
   // Local vazio — registra uma linha com quantidade 0
   if(!itens.length){
-    var payload = {
+    var payloadVazio = {
       acao:'contagem',
       invId:       invAtivo?invAtivo.id:'LIVRE',
       invNome:     invAtivo?invAtivo.nome:'CONTAGEM LIVRE',
       colaborador: usuarioLogado, tipo:'Monitor',
-      sku:'', ean:'', produto:'VAZIO', cor:'', tamanho:'',
-      localizacao: localAtivo, quantidade:0, obs:'LOCAL VAZIO'
+      localizacao: localEnvio,
+      itens: [{sku:'', ean:'', produto:'VAZIO', cor:'', tamanho:'', quantidade:0, obs:'LOCAL VAZIO', posicao:''}]
     };
-    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
-      .catch(function(){ adicionarFilaOffline(payload); })
+    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payloadVazio)})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(!d.ok) adicionarFilaOffline(payloadVazio); })
+      .catch(function(){ adicionarFilaOffline(payloadVazio); })
       .finally(function(){ if(callback) callback(); });
     return;
   }
-  var total = itens.length;
-  var done = 0;
+
   // Calcula total de peças e posição de cada item
   var totalPecas = itens.reduce(function(s,i){ return s+i.qtd; },0);
-  itens.forEach(function(item){
+  var itensPayload = itens.map(function(item){
     var obs = item.anomalia ? 'ANOMALIA - VERIFICAR' : (item.cadastrado ? '' : 'NÃO CADASTRADO NA BASE — EAN: '+item.ean);
     var posicao = '';
     if(itens.length > 1 && totalPecas > 0){
       posicao = (item.qtd / totalPecas) > 0.5 ? 'POSIÇÃO CORRETA' : 'ITEM ANOMALIA';
     }
-    var payload = {
-      acao:'contagem',
-      invId:       invAtivo?invAtivo.id:'LIVRE',
-      invNome:     invAtivo?invAtivo.nome:'CONTAGEM LIVRE',
-      colaborador: usuarioLogado, tipo:'Monitor',
+    return {
       sku:item.sku, ean:item.ean, produto:item.produto,
       cor:item.cor, tamanho:item.tamanho,
-      localizacao: localAtivo, quantidade:item.qtd, obs:obs, posicao:posicao
+      quantidade:item.qtd, obs:obs, posicao:posicao
     };
-    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if(!d.ok) adicionarFilaOffline(payload); })
-      .catch(function(){ adicionarFilaOffline(payload); })
-      .finally(function(){ done++; if(done===total){ toast('✅ '+total+' item(s) registrado(s) em '+localAtivo); if(callback) callback(); } });
   });
+
+  // Envia TODOS os itens do local numa única requisição
+  var payload = {
+    acao:'contagem',
+    invId:       invAtivo?invAtivo.id:'LIVRE',
+    invNome:     invAtivo?invAtivo.nome:'CONTAGEM LIVRE',
+    colaborador: usuarioLogado, tipo:'Monitor',
+    localizacao: localEnvio,
+    itens: itensPayload
+  };
+
+  fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok) toast('✅ '+itensPayload.length+' item(s) registrado(s) em '+localEnvio);
+      else adicionarFilaOffline(payload);
+    })
+    .catch(function(){
+      adicionarFilaOffline(payload);
+      toast('📵 Sem conexão — salvo na fila offline');
+    })
+    .finally(function(){ if(callback) callback(); });
 }
 
 function registrar(){ fecharLocalAtual(); }
