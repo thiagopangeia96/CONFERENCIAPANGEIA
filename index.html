@@ -228,7 +228,7 @@ body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--lav-l);col
   <!-- Campo de bipe coletor -->
   <div class="card" id="card-bipe-coletor">
     <div class="card-title">📡 Coletor</div>
-    <input class="bipe-input" type="text" id="inp-bipe"
+    <input class="bipe-input" type="text" id="inp-bipe" inputmode="none"
            placeholder="Aponte o coletor aqui..."
            autocomplete="off" autocorrect="off" autocapitalize="off"
            onkeydown="onBipeKeydown(event)"
@@ -397,11 +397,10 @@ function abrirMonitor(inv){
   document.getElementById('page-monitor').classList.add('active');
   resetarBipagem();
   carregarHistorico();
-  // Modo celular: foca no campo local
-  // Modo coletor: NÃO foca automaticamente para evitar teclado virtual
-  if(!modoColetor){
-    setTimeout(function(){ document.getElementById('inp-local-cel').focus(); }, 100);
-  }
+  setTimeout(function(){
+    if(modoColetor) document.getElementById('inp-bipe').focus();
+    else document.getElementById('inp-local-cel').focus();
+  }, 100);
 }
 
 function voltarInventarios(){
@@ -461,9 +460,10 @@ function resetarBipagem(){
   document.getElementById('celular-local-wrap').style.pointerEvents = '';
   document.getElementById('celular-ean-wrap').style.opacity = '.4';
   document.getElementById('celular-ean-wrap').style.pointerEvents = 'none';
-  if(!modoColetor) setTimeout(function(){ document.getElementById('inp-local-cel').focus(); }, 100);
-  // Coletor: reativa o campo sem abrir teclado (tap para focar)
-  else { var b = document.getElementById('inp-bipe'); if(b) b.blur(); }
+  setTimeout(function(){
+    if(modoColetor) document.getElementById('inp-bipe').focus();
+    else document.getElementById('inp-local-cel').focus();
+  }, 100);
 }
 
 function setStep(){}
