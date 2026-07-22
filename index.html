@@ -397,11 +397,11 @@ function abrirMonitor(inv){
   document.getElementById('page-monitor').classList.add('active');
   resetarBipagem();
   carregarHistorico();
-  // Foca no campo de bipe após render
-  setTimeout(function(){
-    if(modoColetor) document.getElementById('inp-bipe').focus();
-    else document.getElementById('inp-local-cel').focus();
-  }, 100);
+  // Modo celular: foca no campo local
+  // Modo coletor: NÃO foca automaticamente para evitar teclado virtual
+  if(!modoColetor){
+    setTimeout(function(){ document.getElementById('inp-local-cel').focus(); }, 100);
+  }
 }
 
 function voltarInventarios(){
@@ -462,6 +462,8 @@ function resetarBipagem(){
   document.getElementById('celular-ean-wrap').style.opacity = '.4';
   document.getElementById('celular-ean-wrap').style.pointerEvents = 'none';
   if(!modoColetor) setTimeout(function(){ document.getElementById('inp-local-cel').focus(); }, 100);
+  // Coletor: reativa o campo sem abrir teclado (tap para focar)
+  else { var b = document.getElementById('inp-bipe'); if(b) b.blur(); }
 }
 
 function setStep(){}
@@ -600,10 +602,14 @@ function ocultarAlerta(){
 
 function fecharLocalAtual(){
   if(!localAtivo){ toast('⚠️ Nenhum local ativo'); return; }
+  var localAnterior = localAtivo;
   enviarAcumulador(function(){
     resetarBipagem();
     carregarHistorico();
-    if(modoColetor) document.getElementById('inp-bipe').focus();
+    toastLocalFinalizado(localAnterior);
+    if(modoColetor){
+      setTimeout(function(){ document.getElementById('inp-bipe').focus(); }, 1100);
+    }
   });
 }
 
@@ -791,6 +797,18 @@ function baixarModelo(){
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
   a.download='modelo_lista_contagem.xlsx'; a.click();
+}
+
+function toastLocalFinalizado(local){
+  // Cria overlay visual grande por 1 segundo
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(15,110,86,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadein .15s ease;';
+  el.innerHTML = '<div style="font-size:56px;margin-bottom:12px;">✅</div>'+
+    '<div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:1px;">LOCAL FINALIZADO</div>'+
+    '<div style="font-size:18px;font-weight:700;color:rgba(255,255,255,.85);margin-top:8px;">'+local+'</div>';
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .2s'; }, 800);
+  setTimeout(function(){ document.body.removeChild(el); }, 1100);
 }
 
 function toast(msg){
